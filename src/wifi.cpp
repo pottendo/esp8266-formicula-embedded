@@ -58,9 +58,11 @@ void setup_wifi(void)
     {
         log_msg("DNS setup failed.");
     }
+    printf("MDNS add Service: %d\n", MDNS.addService("mqtt", "tcp", 1883));
+    delay(25);
     printf("Starting MQTT broker\n");
-    //printf("add Service = %d\n", MDNS.addService("mqtt", "tcp", 1883));
     mqtt_broker.init();
+    delay(25);
 }
 
 void loop_wifi(void)

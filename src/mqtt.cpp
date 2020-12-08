@@ -3,7 +3,7 @@
 #include <MQTT.h>
 #include "defs.h"
 
-static const String my_clientID{"/fcce/"};
+static const String my_clientID{"fcce"};
 
 static MQTT *mqtt_client;
 
@@ -41,11 +41,17 @@ void setup_mqtt(void)
     delay(20);
     mqtt_client->connect();
     delay(20);
-    mqtt_client->subscribe("/fcce/config");
+    mqtt_client->subscribe("fcce/config");
+    log_msg("mqtt setup done");
+    mqtt_publish("fcce/config", "Formicula embedded starting...");
 }
 
 void mqtt_publish(String topic, String msg)
 {
     //log_msg("publishing: " + my_clientID + topic + msg);
     mqtt_client->publish(my_clientID + topic, msg, 0, 0);
+}
+
+void mqtt_publish(const char *topic, const char *msg) {
+    mqtt_publish(String(topic), String(msg));
 }

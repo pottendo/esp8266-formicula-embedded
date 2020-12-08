@@ -287,7 +287,7 @@ class tempSensor : public avgDHT
 public:
     tempSensor(std::list<myDHT *> dhts, const char *n = "TempSensor") : avgDHT(REAL_SENSOR, dhts, n, 5.0) {}
     virtual ~tempSensor() = default;
-    virtual String to_string(void) override { return String(name) + ": "; }
+    virtual String to_string(void) override { return String(name); }
 
     void update_data(myDHT *s) override
     {
@@ -304,7 +304,7 @@ class humSensor : public avgDHT
 public:
     humSensor(std::list<myDHT *> dhts, const char *n = "HumSensor") : avgDHT(REAL_SENSOR, dhts, n, 5.5) {}
     virtual ~humSensor() = default;
-    virtual String to_string(void) override { return String(name) + ": "; }
+    virtual String to_string(void) override { return String(name); }
 
     void update_data(myDHT *s) override
     {
