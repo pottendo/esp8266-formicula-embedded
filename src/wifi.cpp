@@ -15,19 +15,22 @@
  * along with vice-mapper.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+#include <uMQTTBroker.h>
+#include <ESP8266mDNS.h>
+static const String hostname = "fcce";
+static uMQTTBroker mqtt_broker;
+
+#ifdef USE_AC
+
 #include <time.h>
 #include <ESP8266WebServer.h>
 #include <AutoConnectOTA.h>
 #include <AutoConnect.h>
-#include <uMQTTBroker.h>
-#include <ESP8266mDNS.h>
 #include "defs.h"
 
 static ESP8266WebServer ip_server;
 static AutoConnect portal(ip_server);
 static AutoConnectConfig config;
-static const String hostname = "fcce";
-static uMQTTBroker mqtt_broker;
 
 void printLocalTime()
 {
@@ -70,3 +73,36 @@ void loop_wifi(void)
     portal.handleClient();
     MDNS.update();
 }
+
+#else
+
+#include <ESP8266WiFi.h>
+#include "defs.h"
+
+void setup_wifi(void)
+{
+    WiFi.begin("pottendo_EXT", "poTtendosWLAN");
+    while (!WiFi.isConnected())
+    {
+        log_msg("Wifi connecting...");
+        delay(500);
+    }
+    log_msg("Setting hostname " + hostname);
+    while (!MDNS.begin(hostname.c_str()))
+    {
+        log_msg("DNS setup failed.");
+    }
+    printf("MDNS add Service: %d\n", MDNS.addService("mqtt", "tcp", 1883));
+ 
+    delay(25);
+    mqtt_broker.init();
+    delay(25);
+}
+
+void loop_wifi(void)
+{
+    //    portal.handleClient();
+    MDNS.update();
+}
+
+#endif

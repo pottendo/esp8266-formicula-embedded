@@ -21,6 +21,8 @@
 
 #include <Arduino.h>
 #include <DHTesp.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 #include <list>
 #include <array>
 #include <Servo.h>
@@ -29,7 +31,32 @@
 
 class avgDHT; /* forware declaration */
 
-class periodicSensor
+typedef enum
+{
+    REAL_SENSOR,
+    JUST_SWITCH
+} sens_type_t;
+
+class genSensor
+{
+protected:
+    const String name;
+    const sens_type_t type;
+
+public:
+    genSensor(String n, const sens_type_t t = REAL_SENSOR) : name(n), type(t) {}
+    virtual ~genSensor() = default;
+
+    sens_type_t get_type() { return type; }
+    virtual String to_string(void) { return name; };
+    virtual float get_data(void) = 0;
+    virtual void publish_data(void)
+    {
+        mqtt_publish(to_string(), String(get_data()));
+    }
+};
+
+class periodicSensor : public genSensor
 {
     static std::list<periodicSensor *> periodic_sensors;
 
@@ -37,23 +64,62 @@ protected:
     myTicker::Ticker *ticker;
 
 public:
-    periodicSensor(int period, void *a)
+    periodicSensor(const String n, int period, void *a) : genSensor(n)
     {
         ticker = new myTicker::Ticker(wrapper, a, period, 0, myTicker::MILLIS);
         periodic_sensors.push_back(this);
         ticker->start();
     }
-    ~periodicSensor() = default;
+    virtual ~periodicSensor() = default;
     static void wrapper(void *a);
     static void tick_sensors(void);
-
+    virtual float get_data(void) override = 0;
     virtual void cb(void) = 0;
+};
+
+class myDS18B20 : public periodicSensor
+{
+    float temp;
+    OneWire *wire;
+    DallasTemperature *temps;
+
+public:
+    myDS18B20(const String n, int p);
+    virtual ~myDS18B20() = default;
+
+    virtual void update_data();
+    virtual void cb(void) override
+    {
+        update_data();
+        publish_data();
+    }
+    virtual float get_data(void) override { return temp; }
+};
+
+class myCapMoisture : public periodicSensor
+{
+    float val;
+    int pin;
+
+public:
+    myCapMoisture(const String n, int p) : periodicSensor(n, 2500, this), pin(p) { log_msg(name + " constructed"); }
+    virtual ~myCapMoisture() = default;
+
+    virtual void update_data()
+    {
+        val = analogRead(pin);
+    }
+    virtual void cb(void) override
+    {
+        update_data();
+        publish_data();
+    }
+    virtual float get_data(void) override { return val; }
 };
 
 class myDHT : public periodicSensor
 {
     DHTesp dht_obj;
-    const String name;
     int pin;
     DHTesp::DHT_MODEL_t model;
     float temp, hum;
@@ -65,6 +131,7 @@ public:
 
     virtual void cb(void) override { update_data(); }
     inline int get_pin(void) { return pin; }
+    virtual float get_data(void) { return temp * hum; } /* dummy, never used directly here */
     inline float get_temp()
     {
         float r;
@@ -189,29 +256,7 @@ public:
     }
 };
 
-typedef enum
-{
-    REAL_SENSOR,
-    JUST_SWITCH
-} sens_type_t;
-
-class genSensor
-{
-    const sens_type_t type;
-
-public:
-    genSensor(const sens_type_t t = REAL_SENSOR) : type(t) {}
-    ~genSensor() = default;
-
-    sens_type_t get_type() { return type; }
-    virtual String to_string(void) = 0;
-    virtual float get_data(void) = 0;
-    virtual void publish_data(void)
-    {
-        mqtt_publish(to_string(), String(get_data()));
-    }
-};
-
+#if 0
 class timeSwitch : public genSensor
 {
 public:
@@ -221,6 +266,7 @@ public:
     float get_data(void) override { return -1.0; }
     virtual String to_string(void) override { return String("timeSwitch"); }
 };
+#endif
 
 class avgDHT : public genSensor
 {
@@ -229,25 +275,21 @@ protected:
     std::array<float, sample_no> data;
     int act_ind;
     std::list<myDHT *> sensors;
-    const char *name;
-    //    SemaphoreHandle_t mutex;
 
 public:
-    avgDHT(const sens_type_t t, std::list<myDHT *> dhts, const char *n = "avgDHT", float def_val = 0.0) : genSensor(t), act_ind(0), sensors(dhts), name(n)
+    avgDHT(const sens_type_t t, std::list<myDHT *> dhts, const String n = "avgDHT", float def_val = 0.0) : genSensor(n, t), act_ind(0), sensors(dhts)
     {
         //        mutex = xSemaphoreCreateMutex();
         for_each(dhts.begin(), dhts.end(),
                  [&](myDHT *dht) { dht->add_parent(this); });
         for (int i = 0; i < sample_no; i++)
             data[i] = def_val;
-        V(mutex);
     }
     ~avgDHT() = default;
 
     virtual void update_data(myDHT *) = 0;
     virtual void update_display(float) = 0;
     virtual String to_string(void) override = 0;
-    const char *get_name() { return name; };
     void add_data(float d)
     {
         P(mutex);
@@ -285,7 +327,7 @@ public:
 class tempSensor : public avgDHT
 {
 public:
-    tempSensor(std::list<myDHT *> dhts, const char *n = "TempSensor") : avgDHT(REAL_SENSOR, dhts, n, 5.0) {}
+    tempSensor(std::list<myDHT *> dhts, const String n = "TempSensor") : avgDHT(REAL_SENSOR, dhts, n, 5.0) {}
     virtual ~tempSensor() = default;
     virtual String to_string(void) override { return String(name); }
 
@@ -302,7 +344,7 @@ public:
 class humSensor : public avgDHT
 {
 public:
-    humSensor(std::list<myDHT *> dhts, const char *n = "HumSensor") : avgDHT(REAL_SENSOR, dhts, n, 5.5) {}
+    humSensor(std::list<myDHT *> dhts, const String n = "HumSensor") : avgDHT(REAL_SENSOR, dhts, n, 5.5) {}
     virtual ~humSensor() = default;
     virtual String to_string(void) override { return String(name); }
 
