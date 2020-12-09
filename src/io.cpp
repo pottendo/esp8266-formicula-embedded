@@ -32,10 +32,32 @@ void periodicSensor::tick_sensors(void)
     std::for_each(periodic_sensors.begin(), periodic_sensors.end(),
                   [](periodicSensor *s) { s->ticker->update(); });
 }
-/* Temperature & Humidity */
 
+/* Temperature DS18B20 */
+
+myDS18B20::myDS18B20(const String n, int pin) : periodicSensor(n, 2000, this)
+{
+    log_msg("constr." + n);
+    wire = new OneWire(pin);
+    temps = new DallasTemperature(wire);
+    temps->begin();
+    log_msg("done.");
+}
+
+void myDS18B20::update_data(void)
+{
+    printf("%s update... \n", name.c_str());
+    temps->requestTemperatures();
+    temp = temps->getTempCByIndex(0);
+    if (temp != DEVICE_DISCONNECTED_C)
+        log_msg(name + ":" + String(temp));
+    else
+        log_msg("Getting data from " + name + " failed.");
+}
+
+/* Temperature & Humidity DHT11/22*/
 myDHT::myDHT(String n, int p, DHTesp::DHT_MODEL_t m)
-    : periodicSensor(2000, this), name(n), pin(p), model(m), temp(-500), hum(-99)
+    : periodicSensor(n, 2000, this), pin(p), model(m), temp(-500), hum(-99)
 {
     dht_obj.setup(pin, m);
     //    mutex = xSemaphoreCreateMutex();
