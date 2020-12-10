@@ -4,6 +4,7 @@
 #include "defs.h"
 
 static const String my_clientID{"fcce"};
+static unsigned long fcc_last_seen;
 
 static MQTT *mqtt_client;
 
@@ -14,9 +15,17 @@ void myConnectedCb(void)
 
 void myDisconnectedCb(void)
 {
+    static int errcount = 0;
     log_msg("mqtt client disconnected... reconnecting");
-    delay(500);
+    delay(1000);
     mqtt_client->connect();
+    delay(25);
+    if (!mqtt_client->isConnected() &&
+        (++errcount > 10))
+    {
+        log_msg("too many mqtt disconnections, rebooting...");
+        ESP.restart();
+    }
 }
 
 void myPublishedCb(void)
@@ -27,6 +36,11 @@ void myPublishedCb(void)
 void myDataCb(String &topic, String &data)
 {
     log_msg("fcce - " + topic + ": " + data);
+    if (topic.startsWith("fcc/cc-alive"))
+    {
+        log_msg("fcc is alive (" + String((millis() - fcc_last_seen)/1000) + "s), re-arming watchdog.");
+        fcc_last_seen = millis();
+    }
 }
 
 void setup_mqtt(void)
@@ -42,17 +56,39 @@ void setup_mqtt(void)
     mqtt_client->connect();
     delay(20);
     mqtt_client->subscribe("fcce/config");
+    mqtt_client->subscribe("fcc/cc-alive");
     log_msg("mqtt setup done");
-    mqtt_publish("/fcce-alive", "Formicula embedded starting...");
+    mqtt_publish("/sensor-alive", "Formicula embedded starting...");
+    fcc_last_seen = millis();   /* give fcc 60s to connect, otherwise restart */
+}
+
+void loop_mqtt(void)
+{
+    if ((millis() - fcc_last_seen) > 60 * 1000)
+    {
+        log_msg("fcc not seen for 60+ seconds, rebooting.");
+        ESP.restart();
+    }
 }
 
 void mqtt_publish(String topic, String msg)
 {
+    static int errcount = 0;
     //log_msg("publishing: " + my_clientID + topic + msg);
-    if (mqtt_client->isConnected())
-        mqtt_client->publish(my_clientID + topic, msg, 0, 0);
-    else
-        log_msg("MQTT not connected - discarding: " + topic + "-" + msg);
+    if (mqtt_client->isConnected() &&
+        mqtt_client->publish(my_clientID + topic, msg, 0, 0))
+    {
+        errcount = 0;
+        return;
+    }
+
+    /* zlorfik, mqtt sucks again */
+    log_msg("mqtt not connected " + String(errcount) + "- discarding: " + topic + "-" + msg);
+    if (++errcount > 10)
+    {
+        log_msg("too many mqtt errors, rebooting...");
+        ESP.restart(); /* lets try a reboot */
+    }
 }
 
 void mqtt_publish(const char *topic, const char *msg)

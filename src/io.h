@@ -102,7 +102,7 @@ class myCapMoisture : public periodicSensor
     int pin;
 
 public:
-    myCapMoisture(const String n, int p) : periodicSensor(n, 2500, this), pin(p) { log_msg(name + " constructed"); }
+    myCapMoisture(const String n, int p) : periodicSensor(n, 2500, this), pin(p) {}
     virtual ~myCapMoisture() = default;
 
     virtual void update_data()

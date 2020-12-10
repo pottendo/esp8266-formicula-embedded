@@ -37,20 +37,17 @@ void periodicSensor::tick_sensors(void)
 
 myDS18B20::myDS18B20(const String n, int pin) : periodicSensor(n, 2000, this)
 {
-    log_msg("constr." + n);
     wire = new OneWire(pin);
     temps = new DallasTemperature(wire);
     temps->begin();
-    log_msg("done.");
 }
 
 void myDS18B20::update_data(void)
 {
-    printf("%s update... \n", name.c_str());
     temps->requestTemperatures();
     temp = temps->getTempCByIndex(0);
     if (temp != DEVICE_DISCONNECTED_C)
-        log_msg(name + ":" + String(temp));
+        ; //log_msg(name + ":" + String(temp));
     else
         log_msg("Getting data from " + name + " failed.");
 }
