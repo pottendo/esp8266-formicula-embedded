@@ -3,6 +3,7 @@
 
 extern void setup_wifi(void);
 extern void loop_wifi(void);
+extern void setup_io(void);
 extern void log_msg(const char *m);
 extern void log_msg(const String &s);
 

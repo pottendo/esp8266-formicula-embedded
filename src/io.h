@@ -23,6 +23,9 @@
 #include <DHTesp.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_BME280.h>
 #include <list>
 #include <array>
 #include <Servo.h>
@@ -117,7 +120,20 @@ public:
     virtual float get_data(void) override { return val; }
 };
 
-class myDHT : public periodicSensor
+class multiPropertySensor : public periodicSensor
+{
+
+public:
+    multiPropertySensor(String n, int period, void *a) : periodicSensor(n, period, a) {}
+    virtual ~multiPropertySensor() = default;
+    virtual float get_data(void) override = 0;
+    virtual void cb(void) = 0;
+    virtual float get_temp(void) = 0;
+    virtual float get_hum(void) = 0;
+    virtual void add_parent(avgDHT *p) = 0;
+};
+
+class myDHT : public multiPropertySensor
 {
     DHTesp dht_obj;
     int pin;
@@ -127,35 +143,39 @@ class myDHT : public periodicSensor
 
 public:
     myDHT(String n, int p, DHTesp::DHT_MODEL_t m = DHTesp::DHT22);
-    ~myDHT() = default;
+    virtual ~myDHT() = default;
 
     virtual void cb(void) override { update_data(); }
     inline int get_pin(void) { return pin; }
     virtual float get_data(void) { return temp * hum; } /* dummy, never used directly here */
-    inline float get_temp()
-    {
-        float r;
-        P(mutex);
-        r = temp;
-        V(mutex);
-        return r;
-    }
-    inline float get_hum()
-    {
-        float r;
-        P(mutex);
-        r = hum;
-        V(mutex);
-        return r;
-    }
+    inline float get_temp(void) { return temp; }
+    inline float get_hum(void) { return hum; }
 
     void update_data();
-    inline void add_parent(avgDHT *p)
-    {
-        P(mutex);
-        parents.push_back(p);
-        V(mutex);
-    }
+    virtual void add_parent(avgDHT *p) { parents.push_back(p); }
+};
+
+class myBM280 : public multiPropertySensor
+{
+    int address;
+    float temp, hum;
+    Adafruit_BME280 *bme; // use I2C interface
+    Adafruit_Sensor *bme_temp;
+    Adafruit_Sensor *bme_humidity;
+    //Adafruit_Sensor *bme_pressure = bme.getPressureSensor();
+    std::list<avgDHT *> parents;
+
+public:
+    myBM280(String n, int address);
+    virtual ~myBM280() = default;
+
+    virtual void cb(void) override { update_data(); }
+    virtual float get_data(void) { return temp * hum; } /* dummy, never used directly here */
+    inline float get_temp() { return temp; }
+    inline float get_hum() { return hum; }
+
+    void update_data();
+    virtual void add_parent(avgDHT *p) { parents.push_back(p); }
 };
 
 class ioSwitch
@@ -274,20 +294,21 @@ protected:
     static const int sample_no = 10;
     std::array<float, sample_no> data;
     int act_ind;
-    std::list<myDHT *> sensors;
+    std::list<multiPropertySensor *> sensors;
 
 public:
-    avgDHT(const sens_type_t t, std::list<myDHT *> dhts, const String n = "avgDHT", float def_val = 0.0) : genSensor(n, t), act_ind(0), sensors(dhts)
+    avgDHT(const sens_type_t t, std::list<multiPropertySensor *> sens, const String n = "avgDHT", float def_val = 0.0)
+        : genSensor(n, t), act_ind(0), sensors(sens)
     {
         //        mutex = xSemaphoreCreateMutex();
-        for_each(dhts.begin(), dhts.end(),
-                 [&](myDHT *dht) { dht->add_parent(this); });
+        for_each(sensors.begin(), sensors.end(),
+                 [&](multiPropertySensor *s) { s->add_parent(this); });
         for (int i = 0; i < sample_no; i++)
             data[i] = def_val;
     }
     ~avgDHT() = default;
 
-    virtual void update_data(myDHT *) = 0;
+    virtual void update_data(multiPropertySensor *) = 0;
     virtual void update_display(float) = 0;
     virtual String to_string(void) override = 0;
     void add_data(float d)
@@ -327,11 +348,11 @@ public:
 class tempSensor : public avgDHT
 {
 public:
-    tempSensor(std::list<myDHT *> dhts, const String n = "TempSensor") : avgDHT(REAL_SENSOR, dhts, n, 5.0) {}
+    tempSensor(std::list<multiPropertySensor *> sens, const String n = "TempSensor") : avgDHT(REAL_SENSOR, sens, n, 5.0) {}
     virtual ~tempSensor() = default;
     virtual String to_string(void) override { return String(name); }
 
-    void update_data(myDHT *s) override
+    void update_data(multiPropertySensor *s) override
     {
         add_data(s->get_temp());
         publish_data();
@@ -344,11 +365,11 @@ public:
 class humSensor : public avgDHT
 {
 public:
-    humSensor(std::list<myDHT *> dhts, const String n = "HumSensor") : avgDHT(REAL_SENSOR, dhts, n, 5.5) {}
+    humSensor(std::list<multiPropertySensor *> sens, const String n = "HumSensor") : avgDHT(REAL_SENSOR, sens, n, 5.5) {}
     virtual ~humSensor() = default;
     virtual String to_string(void) override { return String(name); }
 
-    void update_data(myDHT *s) override
+    void update_data(multiPropertySensor *s) override
     {
         add_data(s->get_hum());
         publish_data();
