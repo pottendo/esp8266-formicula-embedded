@@ -48,6 +48,7 @@ void setup()
 void loop()
 {
     loop_wifi();
+    loop_mqtt();
     ping_ticker->update();
     periodicSensor::tick_sensors();
 }
