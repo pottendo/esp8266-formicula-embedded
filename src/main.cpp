@@ -8,6 +8,7 @@
 
 static myDHT *dht11_1;
 static myDS18B20 *ds18B20;
+static myBM280 *bm280_1;
 static myCapMoisture *moisture;
 static tempSensor *ts;
 static humSensor *hs;
@@ -33,16 +34,21 @@ void setup()
     Serial.begin(115200);
     printf("Formicula embeeded starting...\n");
     setup_wifi();
+    setup_io();
     setup_mqtt();
 
     ping_ticker = new myTicker::Ticker(fcce_ping, NULL, 5000, 0, myTicker::MILLIS);
     ping_ticker->start();
-    dht11_1 = new myDHT("DHT11 sensor", 13, DHTesp::DHT11);
+    dht11_1 = new myDHT("/DHT11 sensor", 13, DHTesp::DHT11);
+    bm280_1 = new myBM280("/BME280 sensor", 0x76);
     ds18B20 = new myDS18B20("/TempErde1", 12);
     moisture = new myCapMoisture("/HumErde1", A0);
-    ts = new tempSensor(std::list<myDHT *>{dht11_1}, "/TempBerg1");
+    ts = new tempSensor(std::list<multiPropertySensor *>{dht11_1}, "/TempBerg1");
     delay(125);
-    hs = new humSensor(std::list<myDHT *>{dht11_1}, "/HumBerg1");
+    hs = new humSensor(std::list<multiPropertySensor *>{dht11_1}, "/HumBerg1");
+    delay(75);
+    ts = new tempSensor(std::list<multiPropertySensor *>{bm280_1}, "/TempBerg2");
+    hs = new humSensor(std::list<multiPropertySensor *>{bm280_1}, "/HumBerg2");
 }
 
 void loop()
