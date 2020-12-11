@@ -1,12 +1,17 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+//#include <uMQTTBroker.h>
 #include <MQTT.h>
 #include "defs.h"
 
 static const String my_clientID{"fcce"};
 static unsigned long fcc_last_seen;
+//#define MQTT_SERVER "192.168.188.30"
+#define MQTT_SERVER WiFi.localIP().toString().c_str()
+//#define MQTT_SERVER "fcce"
 
 static MQTT *mqtt_client;
+//extern uMQTTBroker mqtt_broker;
 
 void myConnectedCb(void)
 {
@@ -45,7 +50,7 @@ void myDataCb(String &topic, String &data)
 
 void setup_mqtt(void)
 {
-    mqtt_client = new MQTT{my_clientID.c_str(), WiFi.localIP().toString().c_str(), 1883};
+    mqtt_client = new MQTT{my_clientID.c_str(), MQTT_SERVER, 1883};
     // setup callbacks
     mqtt_client->onConnected(myConnectedCb);
     mqtt_client->onDisconnected(myDisconnectedCb);
@@ -64,9 +69,9 @@ void setup_mqtt(void)
 
 void loop_mqtt(void)
 {
-    if ((millis() - fcc_last_seen) > 60 * 1000)
+    if ((millis() - fcc_last_seen) > 120 * 1000)
     {
-        log_msg("fcc not seen for 60+ seconds, rebooting.");
+        log_msg("fcc not seen for 120+ seconds, rebooting.");
         ESP.restart();
     }
 }
