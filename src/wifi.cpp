@@ -19,6 +19,7 @@
 #include <ESP8266mDNS.h>
 static const String hostname = "fcce";
 static uMQTTBroker mqtt_broker;
+#define USE_AC
 
 #ifdef USE_AC
 
@@ -94,6 +95,7 @@ void setup_wifi(void)
     }
     printf("MDNS add Service: %d\n", MDNS.addService("mqtt", "tcp", 1883));
  
+    printf("fcce IP = %s\n", WiFi.localIP().toString().c_str());
     delay(25);
     mqtt_broker.init();
     delay(25);
