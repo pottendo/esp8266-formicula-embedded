@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-//#include <uMQTTBroker.h>
 #include <MQTT.h>
 #include "defs.h"
 
@@ -11,7 +10,6 @@ static unsigned long fcc_last_seen;
 //#define MQTT_SERVER "fcce"
 
 static MQTT *mqtt_client;
-//extern uMQTTBroker mqtt_broker;
 
 void myConnectedCb(void)
 {
@@ -43,7 +41,7 @@ void myDataCb(String &topic, String &data)
     log_msg("fcce - " + topic + ": " + data);
     if (topic.startsWith("fcc/cc-alive"))
     {
-        log_msg("fcc is alive (" + String((millis() - fcc_last_seen)/1000) + "s), re-arming watchdog.");
+        log_msg("fcc is alive (" + String((millis() - fcc_last_seen) / 1000) + "s), re-arming watchdog.");
         fcc_last_seen = millis();
     }
 }
@@ -64,7 +62,7 @@ void setup_mqtt(void)
     mqtt_client->subscribe("fcc/cc-alive");
     log_msg("mqtt setup done");
     mqtt_publish("/sensor-alive", "Formicula embedded starting...");
-    fcc_last_seen = millis();   /* give fcc 60s to connect, otherwise restart */
+    fcc_last_seen = millis(); /* give fcc 60s to connect, otherwise restart */
 }
 
 void loop_mqtt(void)
@@ -80,8 +78,7 @@ void mqtt_publish(String topic, String msg)
 {
     static int errcount = 0;
     //log_msg("publishing: " + my_clientID + topic + msg);
-    if (mqtt_client->isConnected() &&
-        mqtt_client->publish(my_clientID + topic, msg, 0, 0))
+    if (mqtt_client->publish(my_clientID + topic, msg, 0, 0))
     {
         errcount = 0;
         return;
