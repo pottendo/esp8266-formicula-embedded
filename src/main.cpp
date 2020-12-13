@@ -39,9 +39,9 @@ void setup()
 
     ping_ticker = new myTicker::Ticker(fcce_ping, NULL, 5000, 0, myTicker::MILLIS);
     ping_ticker->start();
-    dht11_1 = new myDHT("/DHT11 sensor", 13, DHTesp::DHT11);
+    dht11_1 = new myDHT("/DHT11 sensor", 14, DHTesp::DHT11);
     bm280_1 = new myBM280("/BME280 sensor", 0x76);
-    ds18B20 = new myDS18B20("/TempErde1", 12);
+    ds18B20 = new myDS18B20("/TempErde1", 2);
     moisture = new myCapMoisture("/HumErde1", A0);
     ts = new tempSensor(std::list<multiPropertySensor *>{dht11_1}, "/TempBerg1");
     delay(125);

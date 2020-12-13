@@ -62,14 +62,14 @@ void setup_mqtt(void)
     mqtt_client->subscribe("fcc/cc-alive");
     log_msg("mqtt setup done");
     mqtt_publish("/sensor-alive", "Formicula embedded starting...");
-    fcc_last_seen = millis(); /* give fcc 60s to connect, otherwise restart */
+    fcc_last_seen = millis(); /* give fcc 10min to connect, otherwise restart */
 }
 
 void loop_mqtt(void)
 {
-    if ((millis() - fcc_last_seen) > 120 * 1000)
+    if ((millis() - fcc_last_seen) > 600 * 1000)
     {
-        log_msg("fcc not seen for 120+ seconds, rebooting.");
+        log_msg("fcc not seen for 10min seconds, rebooting.");
         ESP.restart();
     }
 }
