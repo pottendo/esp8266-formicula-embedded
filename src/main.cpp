@@ -3,15 +3,22 @@
 #include <ESP8266WiFi.h>
 
 #include "defs.h"
-
 #include "io.h"
 
 static myDHT *dht11_1;
-static myDS18B20 *ds18B20;
+static tempSensorMulti *ts1;
+static humSensorMulti *hs1;
+
 static myBM280 *bm280_1;
+static tempSensorMulti *ts3;
+static humSensorMulti *hs3;
+
+static myDS18B20 *ds18B20;
+static avgSensor *ts2;
+
 static myCapMoisture *moisture;
-static tempSensor *ts;
-static humSensor *hs;
+static avgSensor *hs2;
+
 static myTicker::Ticker *ping_ticker;
 
 static void fcce_ping(void *a)
@@ -39,16 +46,19 @@ void setup()
 
     ping_ticker = new myTicker::Ticker(fcce_ping, NULL, 5000, 0, myTicker::MILLIS);
     ping_ticker->start();
-    dht11_1 = new myDHT("/DHT11 sensor", 14, DHTesp::DHT11);
-    bm280_1 = new myBM280("/BME280 sensor", 0x76);
-    ds18B20 = new myDS18B20("/TempErde1", 2);
-    moisture = new myCapMoisture("/HumErde1", A0);
-    ts = new tempSensor(std::list<multiPropertySensor *>{dht11_1}, "/TempBerg1");
-    delay(125);
-    hs = new humSensor(std::list<multiPropertySensor *>{dht11_1}, "/HumBerg1");
-    delay(75);
-    ts = new tempSensor(std::list<multiPropertySensor *>{bm280_1}, "/TempBerg2");
-    hs = new humSensor(std::list<multiPropertySensor *>{bm280_1}, "/HumBerg2");
+    dht11_1 = new myDHT(nullptr, "/DHT11 sensor", 14, DHTesp::DHT11, 5000);
+    ts1 = new tempSensorMulti(nullptr, "/TempBerg1", std::list<genSensor *>{dht11_1});
+    hs1 = new humSensorMulti(nullptr, "/HumBerg1", std::list<genSensor *>{dht11_1});
+
+    ds18B20 = new myDS18B20(nullptr, "/SD18B20 sensor", 2, 3000);
+    ts2 = new avgSensor(nullptr, "/TempErde1", std::list<genSensor *>{ds18B20});
+
+    moisture = new myCapMoisture(nullptr, "/CapSoilMoist sensor ", A0, 7000);
+    hs2 = new avgSensor(nullptr, "/HumErde1", std::list<genSensor *>{moisture});
+
+    bm280_1 = new myBM280(nullptr, "/BME280 sensor", 0x76, 11000);
+    ts3 = new tempSensorMulti(nullptr, "/TempBerg2", std::list<genSensor *>{bm280_1});
+    hs3 = new humSensorMulti(nullptr, "/HumBerg2", std::list<genSensor *>{bm280_1});
 }
 
 void loop()

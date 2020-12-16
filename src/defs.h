@@ -14,5 +14,18 @@ extern void mqtt_publish(String topic, String msg);
 /* mutual exclusion, not yet used on ESP8266 */
 #define P(s) 
 #define V(s)
+typedef int SemaphoreHandle_t;
+#define xSemaphoreCreateMutex() 42
+class genSensor;
+class uiElements {
+    public:
+    uiElements() = default;
+    ~uiElements() = default;
+
+    void register_sensor(genSensor *) {}
+    void update_sensor(genSensor *) {}
+};
+
+#define mqtt_register_sensor(x)
 
 #endif
