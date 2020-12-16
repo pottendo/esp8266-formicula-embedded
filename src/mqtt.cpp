@@ -10,7 +10,6 @@ static unsigned long fcc_last_seen;
 //#define MQTT_SERVER "fcce"
 
 static MQTT *mqtt_client;
-
 void myConnectedCb(void)
 {
     log_msg("mqtt client connected.");
@@ -69,7 +68,7 @@ void loop_mqtt(void)
 {
     if ((millis() - fcc_last_seen) > 600 * 1000)
     {
-        log_msg("fcc not seen for 10min seconds, rebooting.");
+        log_msg("fcc not seen for 10min, rebooting.");
         ESP.restart();
     }
 }
