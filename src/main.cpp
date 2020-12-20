@@ -10,6 +10,7 @@ static tempSensorMulti *ts1;
 static humSensorMulti *hs1;
 
 static myBM280 *bm280_1;
+static myBM280 *bm280_2;
 static tempSensorMulti *ts3;
 static humSensorMulti *hs3;
 
@@ -56,9 +57,10 @@ void setup()
     moisture = new myCapMoisture(nullptr, "/CapSoilMoist sensor ", A0, 7000);
     hs2 = new avgSensor(nullptr, "/HumErde1", std::list<genSensor *>{moisture});
 
-    bm280_1 = new myBM280(nullptr, "/BME280 sensor", 0x76, 11000);
-    ts3 = new tempSensorMulti(nullptr, "/TempBerg2", std::list<genSensor *>{bm280_1});
-    hs3 = new humSensorMulti(nullptr, "/HumBerg2", std::list<genSensor *>{bm280_1});
+    bm280_1 = new myBM280(nullptr, "/BME280 sensor1", 4, 5, 0x76, 11000);
+    bm280_2 = new myBM280(nullptr, "/BME280 sensor2", 12, 13, 0x76, 11000);
+    ts3 = new tempSensorMulti(nullptr, "/TempBerg2", std::list<genSensor *>{bm280_1, bm280_2});
+    hs3 = new humSensorMulti(nullptr, "/HumBerg2", std::list<genSensor *>{bm280_1, bm280_2});
 }
 
 void loop()

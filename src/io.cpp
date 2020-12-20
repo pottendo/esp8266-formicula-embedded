@@ -136,11 +136,14 @@ void myDHT::update_data(void)
 }
 
 /* BME280 Sensor */
-myBM280::myBM280(uiElements *ui, String n, int a, int period)
+myBM280::myBM280(uiElements *ui, String n, int sda, int scl, int a, int period)
     : multiPropertySensor(ui, n, period), address(a), temp(-777), hum(-88)
 {
+    TwoWire *i2c = new TwoWire;
     bme = new Adafruit_BME280;
-    if (!bme->begin(address))
+
+    i2c->begin(sda, scl);
+    if (!bme->begin(address, i2c))
     {
         log_msg("failed to initialize BME280 sensor " + name);
         error = true;

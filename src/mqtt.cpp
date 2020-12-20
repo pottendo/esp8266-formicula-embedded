@@ -66,9 +66,9 @@ void setup_mqtt(void)
 
 void loop_mqtt(void)
 {
-    if ((millis() - fcc_last_seen) > 600 * 1000)
+    if ((millis() - fcc_last_seen) > 240 * 1000)
     {
-        log_msg("fcc not seen for 10min, rebooting.");
+        log_msg("fcc not seen for 4min, rebooting.");
         ESP.restart();
     }
 }

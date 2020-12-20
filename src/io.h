@@ -333,7 +333,7 @@ class myBM280 : public multiPropertySensor
     //Adafruit_Sensor *bme_pressure = bme.getPressureSensor();
 
 public:
-    myBM280(uiElements *ui, String n, int address = 0x76, int period = 2000);
+    myBM280(uiElements *ui, String n, int sda = 4, int scl = 5, int address = 0x76, int period = 2000);
     virtual ~myBM280() = default;
 
     virtual String _to_string(void) { return String(get_temp()) + "C," + String(get_hum()) + "%"; }
