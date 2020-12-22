@@ -290,10 +290,10 @@ public:
         static const float cal = 99.9F / (825.0 - 400.0);
         P(mutex);
         int t = analogRead(pin);
-        log_msg("hum = " + String(t) + "cal = " + String(cal));
+        //log_msg("hum = " + String(t) + "cal = " + String(cal));
         val = 99.9 - static_cast<float>(t - 400) * cal;
         V(mutex);
-        publish_data();
+        //publish_data();
         std::for_each(parents.begin(), parents.end(),
                       [&](avgSensor *p) {
                           p->add_data(val);
