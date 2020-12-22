@@ -42,6 +42,12 @@ void myDataCb(String &topic, String &data)
     {
         log_msg("fcc is alive (" + String((millis() - fcc_last_seen) / 1000) + "s), re-arming watchdog.");
         fcc_last_seen = millis();
+        return;
+    }
+    if (topic.startsWith("fcc/reset-request"))
+    {
+        log_msg("fcc requested reset... rebooting");
+        ESP.restart();
     }
 }
 
@@ -58,7 +64,7 @@ void setup_mqtt(void)
     mqtt_client->connect();
     delay(20);
     mqtt_client->subscribe("fcce/config");
-    mqtt_client->subscribe("fcc/cc-alive");
+    mqtt_client->subscribe("fcc/#");
     log_msg("mqtt setup done");
     mqtt_publish("/sensor-alive", "Formicula embedded starting...");
     fcc_last_seen = millis(); /* give fcc 10min to connect, otherwise restart */
