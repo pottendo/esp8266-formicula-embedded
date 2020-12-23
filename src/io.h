@@ -212,29 +212,49 @@ public:
     float get_data() override
     {
         float res = 0.0;
+        int crop = 0;
+
+        std::list<float> s;
         P(mutex);
-        std::array<float, sample_no> s = data;
+        for (size_t i = 0; i < data.size(); i++)
+            if (!isnan(data[i]))
+                s.push_back(data[i]);
         V(mutex);
-        std::sort(s.begin(), s.end());
-#if 0
-        printf("%s data:           [\n", name.c_str());
-        for (int i = 0; i < sample_no; i++)
+
+        if (s.size() > 2)
         {
-            printf("%.2f,\n", data[i]);
+            s.sort();
+            crop = (s.size() > 6) ? 2 : 1;
         }
-        printf("----]\n");
-        printf("%s sorted data:    [\n", name.c_str());
-        for (int i = 0; i < sample_no; i++)
+        while (crop-- > 0)
         {
-            printf("%.2f,\n", s[i]);
+            s.pop_front();
+            s.pop_back();
         }
-        printf("++++]\n");
-#endif
-        for (int i = 2; i < sample_no - 2; i++)
-            res = res + s[i];
-        res = res / (sample_no - 4);
-        //        update_display(res);
+        for (auto i = s.begin(); i != s.end(); i++)
+            res = res + *i;
+        res = res / s.size();
         cached_data = res;
+#if 0
+        printf("%s data:           [", name.c_str());
+        fflush(stdout);
+        for (int i = 0; i < sample_no; i++)
+        {
+            printf("%.2f,", data[i]);
+            fflush(stdout);
+        }
+        printf("]\n");
+        fflush(stdout);
+        printf("%s sorted data:    [", name.c_str());
+        fflush(stdout);
+        for (auto i = s.begin(); i != s.end(); i++)
+        {
+            printf("%.2f,", *i);
+            fflush(stdout);
+        }
+        printf("]\n");
+#endif
+
         return res;
     }
 };
@@ -287,12 +307,14 @@ public:
     virtual void _add_data(float v) override { val = v; }
     virtual void update_data() override
     {
-        static const float cal = 99.9F / (825.0 - 400.0);
+        static const float cal = 49.9F / (825.0 - 400.0); /* Sensor delivers: max 825 (dry air) down to ~412 (in water) */
         P(mutex);
         int t = analogRead(pin);
         //log_msg("hum = " + String(t) + "cal = " + String(cal));
-        val = 99.9 - static_cast<float>(t - 400) * cal;
+        val = 99.9F - static_cast<float>(t - 400) * cal; /* align with BME280 sensor: ~50% in dry air */
         V(mutex);
+        if ((val >= 100) || (val <= 10))
+            val = NAN;
         //publish_data();
         std::for_each(parents.begin(), parents.end(),
                       [&](avgSensor *p) {

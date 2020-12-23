@@ -93,6 +93,7 @@ void myDS18B20::update_data(void)
         {
             log_msg("Getting data from " + name + " failed.");
             error = true;
+            all_temps[i] = NAN;
             mqtt_publish(name + "-" + String(i), "<ERR>disconnected.");
         }
     }
@@ -107,7 +108,7 @@ void myDS18B20::update_data(void)
 
 /* Temperature & Humidity */
 myDHT::myDHT(uiElements *ui, String n, int p, DHTesp::DHT_MODEL_t m, int period)
-    : multiPropertySensor(ui, n, period), pin(p), model(m), temp(-500), hum(-99)
+    : multiPropertySensor(ui, n, period), pin(p), model(m), temp(NAN), hum(NAN)
 {
     dht_obj.setup(pin, m);
 }
@@ -121,7 +122,8 @@ void myDHT::update_data(void)
         log_msg(name + "(" + get_pin() + ") - error status: " + String(dht_obj.getStatusString()));
         error = true;
         mqtt_publish(name + "(" + get_pin() + ")-", "<ERR>" + String(dht_obj.getStatusString()));
-        return;
+        newValues.temperature = NAN;
+        newValues.humidity = NAN;
     }
     P(mutex);
     temp = newValues.temperature;
@@ -134,11 +136,12 @@ void myDHT::update_data(void)
 
 /* BME280 Sensor */
 myBM280::myBM280(uiElements *ui, String n, int sda, int scl, uint8_t a, int period)
-    : multiPropertySensor(ui, n, period), sda(sda), scl(scl), address(a), temp(-777), hum(-88)
+    : multiPropertySensor(ui, n, period), sda(sda), scl(scl), address(a), temp(NAN), hum(NAN)
 {
     i2c = new TwoWire;
     bme = new Adafruit_BME280;
-
+    bme_temp = nullptr;
+    bme_humidity = nullptr;
     i2c->begin(sda, scl, address);
     if (!bme->begin(address, i2c))
     {
@@ -159,6 +162,19 @@ myBM280::myBM280(uiElements *ui, String n, int sda, int scl, uint8_t a, int peri
 
 void myBM280::update_data(void)
 {
+    if (!bme_temp || !bme_humidity)
+    {
+        if (!bme->begin(address, i2c))
+        {
+            log_msg("failed to initialize BME280 sensor " + name);
+            temp = hum = NAN;
+            return;
+        }
+        P(mutex);
+        bme_temp = bme->getTemperatureSensor();
+        bme_humidity = bme->getHumiditySensor();
+        V(mutex);
+    }
     sensors_event_t temp_event, humidity_event;
     P(mutex);
     error = false;
@@ -169,16 +185,12 @@ void myBM280::update_data(void)
     if (isnan(temp) || isnan(hum) ||
         (temp < -40) || (hum >= 100))
     {
+        temp = hum = NAN;
         error = true;
         if (!bme->begin(address, i2c))
             log_msg("failed to initialize BME280 sensor " + name);
     }
     V(mutex);
-    if (error)
-    {
-        mqtt_publish(name + "(" + String(sda) + "," + String(scl) + ")-", "<ERR>returned + " + String(temp) + "C," + String(hum) + "%");
-        return;
-    }
 
     //publish_data();
     std::for_each(parents.begin(), parents.end(),
@@ -186,4 +198,6 @@ void myBM280::update_data(void)
                       //printf("updating data for %s at parent %s\n", this->get_name().c_str(), p->get_name().c_str());
                       p->update_data(this);
                   });
+    if (error)
+        mqtt_publish(name + "(" + String(sda) + "," + String(scl) + ")-", "<ERR>returned + " + String(temp) + "C," + String(hum) + "%");
 }
