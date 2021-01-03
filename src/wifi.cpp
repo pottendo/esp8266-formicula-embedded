@@ -41,7 +41,9 @@ void printLocalTime()
 
 static void rootPage(void)
 {
-    char content[] = "Formicula Control Center Embedded - use http://fcce.local/_ac";
+    String body;
+    body = String("Formicula Control Center Embedded - go <a href=\"http://") + WiFi.localIP().toString().c_str() + "/_ac\">fcce admin page/a>";
+    const char *content = body.c_str();
     ip_server.send(200, "text/plain", content);
 }
 
@@ -56,7 +58,7 @@ void setup_wifi(void)
     {
         Serial.println("WiFi connected: " + WiFi.localIP().toString());
     }
-    printf("done.\nSetting up local time...");
+    printf("done.\n");
     printLocalTime();
     log_msg("Setting hostname " + hostname);
     while (!MDNS.begin(hostname.c_str()))
@@ -64,8 +66,8 @@ void setup_wifi(void)
         log_msg("DNS setup failed.");
     }
     printf("MDNS add Service: %d\n", MDNS.addService("mqtt", "tcp", 1883));
-    delay(25);
-    printf("Starting MQTT broker\n");
+    //delay(25);
+    //printf("Starting MQTT broker\n");
     //mqtt_broker.init();
     delay(25);
 }

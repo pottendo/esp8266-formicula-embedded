@@ -314,7 +314,11 @@ public:
         val = 99.9F - static_cast<float>(t - 400) * cal; /* align with BME280 sensor: ~50% in dry air */
         V(mutex);
         if ((val >= 100) || (val <= 10))
+        {
             val = NAN;
+            log_msg(name + ": invalid sensor value.");
+            mqtt_publish(name, "<ERR>invalid value.");
+        }
         //publish_data();
         std::for_each(parents.begin(), parents.end(),
                       [&](avgSensor *p) {

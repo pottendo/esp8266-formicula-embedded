@@ -70,7 +70,11 @@ myDS18B20::myDS18B20(uiElements *ui, const String n, int pin, int period)
     }
     log_msg(name + " found " + String(no_DS18B20) + " sensors.");
     if (no_DS18B20 == 0)
+    {
         error = true;
+        log_msg(name + ": no sensors found.");
+        mqtt_publish(name, "<ERR>no sensors found");
+    }
 }
 
 void myDS18B20::update_data(void)
@@ -79,6 +83,12 @@ void myDS18B20::update_data(void)
     temps->requestTemperatures();
 
     error = false;
+    if (no_DS18B20 == 0)
+    {
+        log_msg(name + ": no sensors found.");
+        mqtt_publish(name, "<ERR>no sensors found");
+        error = true;
+    }
     P(mutex);
     for (int i = 0; i < no_DS18B20; i++)
     {
@@ -121,7 +131,7 @@ void myDHT::update_data(void)
     {
         log_msg(name + "(" + get_pin() + ") - error status: " + String(dht_obj.getStatusString()));
         error = true;
-        mqtt_publish(name + "(" + get_pin() + ")-", "<ERR>" + String(dht_obj.getStatusString()));
+        mqtt_publish(name + "(" + get_pin() + ")", "<ERR>" + String(dht_obj.getStatusString()));
         newValues.temperature = NAN;
         newValues.humidity = NAN;
     }
@@ -168,7 +178,8 @@ void myBM280::update_data(void)
         {
             log_msg("failed to initialize BME280 sensor " + name);
             temp = hum = NAN;
-            return;
+            error = true;
+            goto out;
         }
         P(mutex);
         bme_temp = bme->getTemperatureSensor();
@@ -192,6 +203,7 @@ void myBM280::update_data(void)
     }
     V(mutex);
 
+out:
     //publish_data();
     std::for_each(parents.begin(), parents.end(),
                   [&](genSensor *p) {
@@ -199,5 +211,5 @@ void myBM280::update_data(void)
                       p->update_data(this);
                   });
     if (error)
-        mqtt_publish(name + "(" + String(sda) + "," + String(scl) + ")-", "<ERR>returned + " + String(temp) + "C," + String(hum) + "%");
+        mqtt_publish(name + "(" + String(sda) + "," + String(scl) + ")", "<ERR>returned + " + String(temp) + "C," + String(hum) + "%");
 }

@@ -3,13 +3,14 @@
 #include <MQTT.h>
 #include "defs.h"
 // myqtthub credentials
+#define EXTMQTT
 #ifdef EXTMQTT
 static const char *mqtt_server = "node02.myqtthub.com";
-static int mqtt_port = 8883;
+static int mqtt_port = 1883;
 static const char *clientID = "fcce";
-static const char *user = "fcc-users";
-static const char *pw = "foRmicula666";
-WiFiClientSecure net;
+static const char *user = "fcce-user";
+static const char *pw = "fOrmicula999";
+WiFiClient net;
 #else
 static const char *mqtt_server = "pottendo-pi30-phono";
 static int mqtt_port = 1883;
@@ -24,7 +25,7 @@ static unsigned long fcc_last_seen;
 
 void callback(String &topic, String &payload)
 {
-    log_msg("fcce - " + topic + ": " + payload);
+    //log_msg("fcce - " + topic + ": " + payload);
     if (topic.startsWith("fcc/cc-alive"))
     {
         log_msg("fcc is alive (" + String((millis() - fcc_last_seen) / 1000) + "s), re-arming watchdog.");
@@ -52,21 +53,18 @@ void reconnect()
             connection_wd = millis();
         last = millis();
         reconnects++;
-        //static char buf[32];
-        //snprintf(buf, 32, "fcce", reconnects);
         log_msg("fcce not connected, attempting MQTT connection..." + String(reconnects));
 
         // Attempt to connect
 #ifdef EXTMQTT
-        net.setInsecure();
+        //net.setInsecure();
         if (client.connect(clientID, user, pw))
 #else
         if (client.connect(clientID))
 #endif
         {
-            log_msg("connected");
-            client.subscribe("#", 0);
-            client.publish("fcce/config", "Formicula Control Center - aloha...");
+            client.subscribe("fcc/#", 0);
+            mqtt_publish("/config", "Formicula Control Center Embedded - aloha...");
             reconnects = 0;
             connection_wd = 0;
             log_msg("fcce connected.");
@@ -99,8 +97,8 @@ void mqtt_publish(String topic, String msg)
         log_msg("mqtt client not connected...");
         return;
     }
-    //log_msg("fcc publish: " + topic + " - " + msg);
-    client.publish(topic.c_str(), msg.c_str());
+    //log_msg("fcce publish: " + topic + " - " + msg);
+    client.publish((clientID + topic).c_str(), msg.c_str());
 }
 
 void setup_mqtt(void)
@@ -108,6 +106,7 @@ void setup_mqtt(void)
     client.begin(mqtt_server, mqtt_port, net);
     client.onMessage(callback);
     delay(50);
+    reconnect();
 }
 
 void loop_mqtt_dummy()
@@ -127,14 +126,14 @@ void loop_mqtt_dummy()
         {
             ++value;
             snprintf(msg, 50, "Hello world from fcce #%ld", value);
-            mqtt_publish("fcce/config", msg);
+            mqtt_publish("/config", msg);
             const char *c;
             if (value % 2)
                 c = "1";
             else
                 c = "0";
 
-            mqtt_publish("fcce/Infrarot", c);
+            mqtt_publish("/Infrarot", c);
         }
         lastMsg = now;
     }
@@ -142,16 +141,18 @@ void loop_mqtt_dummy()
 
 void loop_mqtt()
 {
+    client.loop();
     if (!client.connected())
     {
         reconnect();
     }
-    client.loop();
     //loop_mqtt_dummy();
 
-    if ((millis() - fcc_last_seen) > 240 * 1000)
+    if ((millis() - fcc_last_seen) > 270 * 1000)
     {
-        log_msg("fcc not seen for 4min, rebooting.");
+        const String m{"<ERR>fcc offline, rebooting."};
+        mqtt_publish("/config", m);
+        log_msg(m);
         ESP.restart();
     }
 }
