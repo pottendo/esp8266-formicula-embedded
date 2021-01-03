@@ -19,7 +19,7 @@
 #include <ESP8266mDNS.h>
 static const String hostname{"fcce"};
 //static uMQTTBroker mqtt_broker;
-//#define USE_AC
+#define USE_AC
 
 #ifdef USE_AC
 
@@ -41,7 +41,7 @@ void printLocalTime()
 
 static void rootPage(void)
 {
-    char content[] = "ESP12x WebPage!";
+    char content[] = "Formicula Control Center Embedded - use http://fcce.local/_ac";
     ip_server.send(200, "text/plain", content);
 }
 
@@ -66,7 +66,7 @@ void setup_wifi(void)
     printf("MDNS add Service: %d\n", MDNS.addService("mqtt", "tcp", 1883));
     delay(25);
     printf("Starting MQTT broker\n");
-    mqtt_broker.init();
+    //mqtt_broker.init();
     delay(25);
 }
 
@@ -76,7 +76,7 @@ void loop_wifi(void)
     MDNS.update();
 }
 
-#else
+#else /* USE_AC */
 
 #include <ESP8266WiFi.h>
 #include "defs.h"

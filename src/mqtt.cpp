@@ -14,8 +14,8 @@ WiFiClientSecure net;
 static const char *mqtt_server = "pottendo-pi30-phono";
 static int mqtt_port = 1883;
 static const char *clientID = "fcce";
-static const char *user = "fcc-users";
-static const char *pw = "foRmicula666";
+//static const char *user = "fcc-users";
+//static const char *pw = "foRmicula666";
 WiFiClient net;
 #endif
 
