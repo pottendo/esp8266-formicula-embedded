@@ -28,13 +28,13 @@ static void fcce_ping(void *a)
     static char buf[84];
     unsigned long t = millis();
     unsigned long uptime = (t - last) / 1000;
-    snprintf(buf, 84, "/uptime %02ldh:%02ldm:%02lds,IP(%s),fm=%d",
+    snprintf(buf, 84, "fcce/ut %02ldh:%02ldm:%02lds,IP(%s),fm=%d",
              uptime / 3600,
              (uptime % 3600) / 60,
              (uptime % 60),
              WiFi.localIP().toString().c_str(),
              ESP.getFreeHeap());
-    log_msg(String("fcce - ping ") + buf);
+    //log_msg(String("fcce - ping ") + buf);
     mqtt_publish("/config", buf);
 }
 

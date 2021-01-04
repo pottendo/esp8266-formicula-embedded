@@ -7,9 +7,6 @@
 
 static const String my_clientID{"fcce"};
 static unsigned long fcc_last_seen;
-//#define MQTT_SERVER "192.168.188.30"
-//#define MQTT_SERVER WiFi.localIP().toString().c_str()
-//#define MQTT_SERVER "fcce"
 
 /*
  * Custom broker class with overwritten callback functions
