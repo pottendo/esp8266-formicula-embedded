@@ -15,10 +15,8 @@
  * along with vice-mapper.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-//#include <uMQTTBroker.h>
 #include <ESP8266mDNS.h>
 static const String hostname{"fcce"};
-//static uMQTTBroker mqtt_broker;
 #define USE_AC
 
 #ifdef USE_AC
@@ -66,9 +64,6 @@ void setup_wifi(void)
         log_msg("DNS setup failed.");
     }
     printf("MDNS add Service: %d\n", MDNS.addService("mqtt", "tcp", 1883));
-    //delay(25);
-    //printf("Starting MQTT broker\n");
-    //mqtt_broker.init();
     delay(25);
 }
 
@@ -83,10 +78,10 @@ void loop_wifi(void)
 #include <ESP8266WiFi.h>
 #include "defs.h"
 //#define AP
-//#define MOBILE
+#define MOBILE
 //#define TEST
-#define EXT
-//#define USE_MDNS
+//#define EXT
+#define USE_MDNS
 
 void connect_wifi(void)
 {
@@ -107,7 +102,7 @@ void connect_wifi(void)
     IPAddress dns(192, 168, 43, 1);
     IPAddress subnet(255, 255, 255, 0);
     WiFi.config(ip, gw, subnet, dns);
-    WiFi.begin("pottendosM2", "poTtendosMOBILE");
+    WiFi.begin("pottendos-mobile", "poTtendosMOBILE");
 #endif
 #ifdef TEST
     IPAddress ip(10, 0, 0, 2);
@@ -118,7 +113,7 @@ void connect_wifi(void)
     WiFi.begin("pottendoT", "poTtendosWLAN");
 #endif
 #ifdef EXT
-#if 0
+#if 1
     IPAddress ip(192, 168, 188, 34);
     IPAddress gw(192, 168, 188, 1);
     IPAddress dns(192, 168, 188, 1);
@@ -150,8 +145,6 @@ void connect_wifi(void)
 void setup_wifi(void)
 {
     connect_wifi();
-    //delay(2000);
-    //mqtt_broker.init();
     delay(500);
 }
 
