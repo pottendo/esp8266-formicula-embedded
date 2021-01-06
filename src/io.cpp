@@ -211,5 +211,5 @@ out:
                       p->update_data(this);
                   });
     if (error)
-        mqtt_publish(name + "(" + String(sda) + "," + String(scl) + ")", "<ERR>returned + " + String(temp) + "C," + String(hum) + "%");
+        mqtt_publish(name + "(" + String(sda) + "," + String(scl) + ")", "<ERR>returned " + String(temp) + "C," + String(hum) + "%");
 }
