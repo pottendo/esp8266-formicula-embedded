@@ -9,6 +9,7 @@ static myDHT *dht11_1;
 static tempSensorMulti *ts1;
 static humSensorMulti *hs1;
 
+static myDHT *dht22_1;
 static myBM280 *bm280_1;
 static myBM280 *bm280_2;
 static tempSensorMulti *ts3;
@@ -54,13 +55,13 @@ void setup()
     ts1 = new tempSensorMulti(nullptr, "/FCCETemp", std::list<genSensor *>{dht11_1});
     hs1 = new humSensorMulti(nullptr, "/FCCEHum", std::list<genSensor *>{dht11_1});
 
-    /*dht22_1 = new myDHT(nullptr, "/DHT22 sensor", 14, DHTesp::DHT22, 11000);*/
+    dht22_1 = new myDHT(nullptr, "/DHT22 sensor", 14, DHTesp::DHT22, 3000);
     bm280_1 = new myBM280(nullptr, "/BME280sens1", 4, 5, 0x76, 3000);
     bm280_2 = new myBM280(nullptr, "/BME280sens2", 4, 5, 0x77, 3000);
-    ts3 = new tempSensorMulti(nullptr, "/BergTemp", std::list<genSensor *>{bm280_1, bm280_2/*, dht22_1*/});
-    hs3 = new humSensorMulti(nullptr, "/BergHum", std::list<genSensor *>{bm280_1, bm280_2/*, dht22_1*/});
+    ts3 = new tempSensorMulti(nullptr, "/BergTemp", std::list<genSensor *>{bm280_1, bm280_2, dht22_1});
+    hs3 = new humSensorMulti(nullptr, "/BergHum", std::list<genSensor *>{bm280_1, bm280_2, dht22_1});
 
-    ds18B20 = new myDS18B20(nullptr, "/SD18B20sens", 2, 50000);
+    ds18B20 = new myDS18B20(nullptr, "/SD18B20sens", 2, 5000);
     ts2 = new avgSensor(nullptr, "/ErdeTemp", std::list<genSensor *>{ds18B20});
 
     moisture = new myCapMoisture(nullptr, "/CapSoilMoistsens ", A0, 20000);
