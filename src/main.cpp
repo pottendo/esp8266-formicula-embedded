@@ -64,7 +64,7 @@ void setup()
     ds18B20 = new myDS18B20(nullptr, "/SD18B20sens", 2, 5000);
     ts2 = new avgSensor(nullptr, "/ErdeTemp", std::list<genSensor *>{ds18B20});
 
-    moisture = new myCapMoisture(nullptr, "/CapSoilMoistsens ", A0, 20000);
+    moisture = new myCapMoisture(nullptr, "/CapSoilMoistsens ", 15, 16, 2000);
     hs2 = new avgSensor(nullptr, "/ErdeHum", std::list<genSensor *>{moisture});
 }
 

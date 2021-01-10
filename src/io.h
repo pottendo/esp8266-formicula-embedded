@@ -296,41 +296,27 @@ public:
 
 class myCapMoisture : public periodicSensor
 {
-    float val;
-    int pin;
+    float hum;
+    int pin_sel0, pin_sel1;
+    int analog_input = A0;
+    int no_sensors;
+    static const int max_sensors = 4;
+    float all_hums[max_sensors] = { 0, 0, 0, 0 };
+
+    int poll_analog_inputs(int max = max_sensors);
+    float sens2hum(int t);
 
 public:
-    myCapMoisture(uiElements *ui, const String n, int p, int period = 5000)
-        : periodicSensor(ui, n, period), pin(p) {}
+    myCapMoisture(uiElements *ui, const String n, int p1, int p2, int period = 5000);
     virtual ~myCapMoisture() = default;
 
-    virtual void _add_data(float v) override { val = v; }
-    virtual void update_data() override
-    {
-        static const float cal = 49.9F / (825.0 - 400.0); /* Sensor delivers: max 825 (dry air) down to ~412 (in water) */
-        P(mutex);
-        int t = analogRead(pin);
-        //log_msg("hum = " + String(t) + "cal = " + String(cal));
-        val = 99.9F - static_cast<float>(t - 400) * cal; /* align with BME280 sensor: ~50% in dry air */
-        V(mutex);
-        if ((val >= 100) || (val <= 10))
-        {
-            val = NAN;
-            log_msg(name + ": invalid sensor value.");
-            mqtt_publish(name, "<ERR>invalid value.");
-        }
-        //publish_data();
-        std::for_each(parents.begin(), parents.end(),
-                      [&](avgSensor *p) {
-                          p->add_data(val);
-                          p->update_data();
-                      });
-    }
+    virtual void _add_data(float v) override { hum = v; }
+    virtual void update_data() override;
     virtual float get_data(void) override
     {
         float r;
         P(mutex);
-        r = val;
+        r = hum;
         V(mutex);
         return r;
     }

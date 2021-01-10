@@ -116,6 +116,65 @@ void myDS18B20::update_data(void)
                   });
 }
 
+myCapMoisture::myCapMoisture(uiElements *ui, const String n, int p1, int p2, int period)
+    : periodicSensor(ui, n, period), pin_sel0(p1), pin_sel1(p2), no_sensors(0)
+{
+    pinMode(pin_sel0, OUTPUT);
+    pinMode(pin_sel1, OUTPUT);
+    pinMode(A0, INPUT);
+    no_sensors = poll_analog_inputs(max_sensors);
+    log_msg(n + ": found " + String(no_sensors) + " sensors.");
+}
+
+float myCapMoisture::sens2hum(int t)
+{
+    float val;
+    static const float cal = 49.9F / (825.0 - 400.0); /* Sensor delivers: max 825 (dry air) down to ~412 (in water) */
+    //log_msg("hum = " + String(t) + "cal = " + String(cal));
+    val = 99.9F - static_cast<float>(t - 400) * cal; /* align with BME280 sensor: ~50% in dry air */
+    if ((val >= 100) || (val <= 10))
+        return -1;
+    return val;
+}
+
+int myCapMoisture::poll_analog_inputs(int max_sensors)
+{
+    int t, valid = 0;
+    for (int i = 0; i < max_sensors; i++)
+    {
+        all_hums[i] = NAN;
+        digitalWrite(pin_sel0, i & 1);
+        digitalWrite(pin_sel1, i & 2);
+        t = analogRead(PIN_A0);
+        if ((t >= 50) && (t <= 1000))
+        {
+            all_hums[valid] = sens2hum(t);
+            if (all_hums[valid] < 0)
+            {
+                all_hums[valid] = NAN;
+                log_msg(name + "(" + String(valid) + "): invalid sensor value - " + String(t) + " on analog input " + String(i));
+                mqtt_publish(name, "<ERR>invalid value: " + String(t) + " on analog input " + String(i));
+            }
+            valid++;
+            continue;
+        }
+    }
+    return valid;
+}
+
+void myCapMoisture::update_data()
+{
+    P(mutex);
+    int valid = poll_analog_inputs(max_sensors);
+    V(mutex);
+    std::for_each(parents.begin(), parents.end(),
+                  [&](avgSensor *p) {
+                      for (int i = 0; i < valid; i++)
+                          p->add_data(all_hums[i]);
+                      p->update_data();
+                  });
+}
+
 /* Temperature & Humidity */
 myDHT::myDHT(uiElements *ui, String n, int p, DHTesp::DHT_MODEL_t m, int period)
     : multiPropertySensor(ui, n, period), pin(p), model(m), temp(NAN), hum(NAN)
