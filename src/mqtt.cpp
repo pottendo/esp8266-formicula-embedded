@@ -16,18 +16,17 @@ class myMQTTBroker : public uMQTTBroker
 public:
     virtual bool onConnect(IPAddress addr, uint16_t client_count)
     {
-        Serial.println(addr.toString() + " connected");
+        log_msg(addr.toString() + " connected");
         return true;
     }
 
     virtual void onDisconnect(IPAddress addr, String client_id)
     {
-        Serial.println(addr.toString() + " (" + client_id + ") disconnected");
+        log_msg(addr.toString() + " (" + client_id + ") disconnected");
     }
 
     virtual bool onAuth(String username, String password, String client_id)
     {
-        Serial.println("Username/Password/ClientId: " + username + "/" + password + "/" + client_id);
         return true;
     }
 
@@ -37,9 +36,8 @@ public:
         os_memcpy(data_str, data, length);
         data_str[length] = '\0';
 
-        Serial.println("received topic '" + topic + "' with data '" + (String)data_str + "'");
+        log_msg("received topic '" + topic + "' with data '" + (String)data_str + "'");
         //printClients();
-        //log_msg("fcce - " + topic + ": " + payload);
         if (topic.startsWith("fcc/cc-alive"))
         {
             log_msg("fcc is alive (" + String((millis() - fcc_last_seen) / 1000) + "s), re-arming watchdog.");
@@ -49,6 +47,8 @@ public:
         if (topic.startsWith("fcc/reset-request"))
         {
             log_msg("fcc requested reset... rebooting");
+            mqtt_publish("fcce/config", "reboot requested via mqtt...");
+            delay(250);
             ESP.restart();
         }
     }
@@ -64,7 +64,7 @@ public:
 
             getClientAddr(i, addr);
             getClientId(i, client_id);
-            Serial.println("Client " + client_id + " on addr: " + addr.toString());
+            log_msg("Client " + client_id + " on addr: " + addr.toString());
         }
     }
 };
@@ -89,6 +89,7 @@ void loop_mqtt(void)
         const String m{"<ERR>fcc offline, rebooting."};
         mqtt_publish("/config", m);
         log_msg(m);
+        delay(250);
         ESP.restart();
     }
 }
