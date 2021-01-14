@@ -300,8 +300,8 @@ class myCapMoisture : public periodicSensor
     int pin_sel0, pin_sel1;
     int analog_input = A0;
     int no_sensors;
-    static const int max_sensors = 4;
-    float all_hums[max_sensors] = { 0, 0, 0, 0 };
+    static const int max_sensors = 1;
+    float all_hums[max_sensors] = { 0 };
 
     int poll_analog_inputs(int max = max_sensors);
     float sens2hum(int t);
