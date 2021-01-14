@@ -119,8 +119,11 @@ void myDS18B20::update_data(void)
 myCapMoisture::myCapMoisture(uiElements *ui, const String n, int p1, int p2, int period)
     : periodicSensor(ui, n, period), pin_sel0(p1), pin_sel1(p2), no_sensors(0)
 {
-    pinMode(pin_sel0, OUTPUT);
-    pinMode(pin_sel1, OUTPUT);
+    if (max_sensors > 1)
+    {
+        pinMode(pin_sel0, OUTPUT);
+        pinMode(pin_sel1, OUTPUT);
+    }
     pinMode(A0, INPUT);
     no_sensors = poll_analog_inputs(max_sensors);
     log_msg(n + ": found " + String(no_sensors) + " sensors.");
@@ -143,8 +146,11 @@ int myCapMoisture::poll_analog_inputs(int max_sensors)
     for (int i = 0; i < max_sensors; i++)
     {
         all_hums[i] = NAN;
-        digitalWrite(pin_sel0, i & 1);
-        digitalWrite(pin_sel1, i & 2);
+        if (max_sensors > 1)
+        {
+            digitalWrite(pin_sel0, i & 1);
+            digitalWrite(pin_sel1, i & 2);
+        }
         t = analogRead(PIN_A0);
         if ((t >= 50) && (t <= 1000))
         {
