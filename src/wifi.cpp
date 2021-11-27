@@ -40,9 +40,9 @@ void printLocalTime()
 static void rootPage(void)
 {
     String body;
-    body = String("Formicula Control Center Embedded - go <a href=\"http://") + WiFi.localIP().toString().c_str() + "/_ac\">fcce admin page/a>";
+    body = String("Formicula Control Center Embedded - go <a href=\"http://") + WiFi.localIP().toString() + "/_ac\">fcce admin page";
     const char *content = body.c_str();
-    ip_server.send(200, "text/plain", content);
+    ip_server.send(200, "text/html", content);
 }
 
 void setup_wifi(void)
