@@ -132,20 +132,12 @@ static void fcce_upstream(String &t, String &payload);
 
 void setup_mqtt(void)
 {
-    while (true)
-    {
-        try
-        {
-            fcce_connection = new myMqttLocal(client_id, mqtt_broker, fcce_upstream, "fcce broker");
-            break;
-        }
-        catch (String msg)
-        {
-            log_msg(msg + "... retrying");
-            delay(500);
-        }
-    }
-    log_msg("mqtt setup done");
+    log_msg("mqtt_setup...");
+    fcce_connection = new myMqttLocal(client_id, mqtt_broker, fcce_upstream, "fcce broker");
+    if (!fcce_connection)
+        log_msg("...failed.");
+    else
+        log_msg("...mqtt setup done");
 }
 
 void loop_mqtt()
@@ -167,7 +159,7 @@ void loop_mqtt()
 void mqtt_publish(String topic, String msg)
 {
     static int errcount = 0;
-    //log_msg(String{"publishing: "} + client_id + topic + " '" + msg + "'");
+    // log_msg(String{"publishing: "} + client_id + topic + " '" + msg + "'");
     if (fcce_connection->publish(topic, msg))
     {
         errcount = 0;
@@ -176,10 +168,11 @@ void mqtt_publish(String topic, String msg)
 
     /* zlorfik, mqtt sucks again */
     log_msg("mqtt not connected " + String(errcount) + "- discarding: " + topic + "-" + msg);
-    if (++errcount > 100)
+    if (++errcount > 30)
     {
-        log_msg("too many mqtt errors, rebooting...");
-        ESP.restart(); /* lets try a reboot */
+        log_msg("too many mqtt errors, try rebooting...");
+        errcount = 0;
+        // ESP.restart(); /* lets try a reboot */
     }
 }
 
@@ -188,25 +181,17 @@ void mqtt_publish(const char *topic, const char *msg)
     mqtt_publish(String(topic), String(msg));
 }
 
+#if 0
 myMqtt *mqtt_register_logger(void)
 {
-    while (true)
-    {
-        try
-        {
 #ifdef MQTT_LOG_LOCAL
-            return new myMqttLocal(client_id, MQTT_LOG, nullptr, "log broker", 1883, MQTT_LOG_USER, MQTT_LOG_PW);
+    return new myMqttLocal(client_id, MQTT_LOG, nullptr, "log broker", 1883, MQTT_LOG_USER, MQTT_LOG_PW);
 #else
-            return new myMqttSec(client_id, MQTT_LOG, nullptr, "log broker", 8883, MQTT_LOG_USER, MQTT_LOG_PW);
+    return new myMqttSec(client_id, MQTT_LOG, nullptr, "log broker", 8883, MQTT_LOG_USER, MQTT_LOG_PW);
 #endif
-        }
-        catch (String msg)
-        {
-            log_msg(msg + "... retrying");
-            delay(500);
-        }
-    }
+    return fcce_connection;
 }
+#endif
 
 /* class myMqtt broker */
 myMqtt::myMqtt(const char *id, upstream_fn f, const char *n, const char *user, const char *pw)
